@@ -1,2 +1,2 @@
 cp arch/arm64/boot/Image /media/aidan/boot/kernel8.img
-cp arch/arm64/boot/dts/broadcom/bcm2710-rpi-3-b.dtb /media/aidan/boot
+# cp arch/arm64/boot/dts/broadcom/bcm2710-rpi-3-b.dtb /media/aidan/boot
