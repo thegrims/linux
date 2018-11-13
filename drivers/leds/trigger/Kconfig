@@ -49,13 +49,6 @@ config LEDS_TRIGGER_MTD
 	  This allows LEDs to be controlled by MTD activity.
 	  If unsure, say N.
 
-config LEDS_TRIGGER_MORSE
-	tristate "LED Morse Trigger"
-	depends on LEDS_TRIGGERS
-	default y
-	help
-	  This makes a predefined morse code message blink
-
 config LEDS_TRIGGER_HEARTBEAT
 	tristate "LED Heartbeat Trigger"
 	depends on LEDS_TRIGGERS
@@ -64,6 +57,13 @@ config LEDS_TRIGGER_HEARTBEAT
 	  The flash frequency is a hyperbolic function of the 1-minute
 	  load average.
 	  If unsure, say Y.
+
+config LEDS_TRIGGER_MORSE
+	tristate "LED Morse Trigger"
+	depends on LEDS_TRIGGERS
+	default y
+	help
+	  This makes a predefined morse code message blink
 
 config LEDS_TRIGGER_BACKLIGHT
 	tristate "LED backlight Trigger"

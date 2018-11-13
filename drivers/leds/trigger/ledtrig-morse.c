@@ -20,6 +20,7 @@
 #include <linux/sched/loadavg.h>
 #include <linux/leds.h>
 #include <linux/reboot.h>
+// #include <stdio.h>
 #include "../leds.h"
 
 static int panic_morses;
@@ -31,8 +32,17 @@ struct morse_trig_data {
 	unsigned int invert;
 };
 
+static const int message[21] = {
+	500,	250,	500,	250,	500,	250,	1500, // S
+	1500,	250,	1500,	250,	1500,	250, 	1500, // o
+	500,	250,	500,	250,	500,	250,	1500, // S
+};
+int onOff = 0;
+int myIndex = 0;
+
 static void led_morse_function(unsigned long data)
 {
+	// printf("Hello, World\n");
 	struct led_classdev *led_cdev = (struct led_classdev *) data;
 	struct morse_trig_data *morse_data = led_cdev->trigger_data;
 	unsigned long brightness = LED_OFF;
@@ -47,43 +57,19 @@ static void led_morse_function(unsigned long data)
 		led_cdev->blink_brightness = led_cdev->new_blink_brightness;
 
 	/* acts like an actual heart beat -- ie thump-thump-pause... */
-	switch (morse_data->phase) {
-	case 0:
-		/*
-		 * The hyperbolic function below modifies the
-		 * morse period length in dependency of the
-		 * current (1min) load. It goes through the points
-		 * f(0)=1260, f(1)=860, f(5)=510, f(inf)->300.
-		 */
-		morse_data->period = 300 +
-			(6720 << FSHIFT) / (5 * avenrun[0] + (7 << FSHIFT));
-		morse_data->period =
-			msecs_to_jiffies(morse_data->period);
-		delay = msecs_to_jiffies(70);
-		morse_data->phase++;
-		if (!morse_data->invert)
-			brightness = led_cdev->blink_brightness;
-		break;
-	case 1:
-		delay = morse_data->period / 4 - msecs_to_jiffies(70);
-		morse_data->phase++;
-		if (morse_data->invert)
-			brightness = led_cdev->blink_brightness;
-		break;
-	case 2:
-		delay = msecs_to_jiffies(70);
-		morse_data->phase++;
-		if (!morse_data->invert)
-			brightness = led_cdev->blink_brightness;
-		break;
-	default:
-		delay = morse_data->period - morse_data->period / 4 -
-			msecs_to_jiffies(70);
-		morse_data->phase = 0;
-		if (morse_data->invert)
-			brightness = led_cdev->blink_brightness;
-		break;
+
+	if (onOff == 0){
+		onOff = 1;
 	}
+	else{
+		onOff = 0;
+	}
+	brightness = onOff;
+	if (myIndex == 21){
+		myIndex = 0;
+	}
+	delay = msecs_to_jiffies(message[myIndex]);
+	myIndex++;
 
 	led_set_brightness_nosleep(led_cdev, brightness);
 	mod_timer(&morse_data->timer, jiffies + delay);
