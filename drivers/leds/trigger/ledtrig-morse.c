@@ -20,7 +20,6 @@
 #include <linux/sched/loadavg.h>
 #include <linux/leds.h>
 #include <linux/reboot.h>
-// #include <stdio.h>
 #include "../leds.h"
 
 static int panic_morses;
@@ -30,7 +29,6 @@ struct morse_trig_data {
 	unsigned int period;
 	struct timer_list timer;
 	unsigned int invert;
-	// unsigned int speed;
 };
 
 static const int message[21] = {
@@ -43,7 +41,6 @@ int myIndex = 0;
 
 static void led_morse_function(unsigned long data)
 {
-	// printf("Hello, World\n");
 	struct led_classdev *led_cdev = (struct led_classdev *) data;
 	struct morse_trig_data *morse_data = led_cdev->trigger_data;
 	unsigned long brightness = LED_OFF;
@@ -57,8 +54,7 @@ static void led_morse_function(unsigned long data)
 	if (test_and_clear_bit(LED_BLINK_BRIGHTNESS_CHANGE, &led_cdev->work_flags))
 		led_cdev->blink_brightness = led_cdev->new_blink_brightness;
 
-	/* acts like an actual heart beat -- ie thump-thump-pause... */
-
+	// if previous was off, new one is on
 	if (onOff == 0){
 		onOff = 1;
 	}
@@ -66,9 +62,16 @@ static void led_morse_function(unsigned long data)
 		onOff = 0;
 	}
 	brightness = onOff;
+	// wrap around message
 	if (myIndex == 21){
 		myIndex = 0;
 	}
+	// if speed is selected, multiply delay by two to make morse print slower
+	if (morse_data->invert == 1){
+		// brightness = LED_OFF;
+		delay = msecs_to_jiffies(message[myIndex]*2);
+	}
+	// otherwise normal speed
 	delay = msecs_to_jiffies(message[myIndex]);
 	myIndex++;
 
