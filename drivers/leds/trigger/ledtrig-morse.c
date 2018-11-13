@@ -30,6 +30,7 @@ struct morse_trig_data {
 	unsigned int period;
 	struct timer_list timer;
 	unsigned int invert;
+	// unsigned int speed;
 };
 
 static const int message[21] = {
@@ -102,7 +103,7 @@ static ssize_t led_invert_store(struct device *dev,
 }
 
 static DEVICE_ATTR(invert, 0644, led_invert_show, led_invert_store);
-
+static DEVICE_ATTR(speed, 0644, led_invert_show, led_invert_store);
 static void morse_trig_activate(struct led_classdev *led_cdev)
 {
 	struct morse_trig_data *morse_data;
@@ -114,6 +115,7 @@ static void morse_trig_activate(struct led_classdev *led_cdev)
 
 	led_cdev->trigger_data = morse_data;
 	rc = device_create_file(led_cdev->dev, &dev_attr_invert);
+	device_create_file(led_cdev->dev, &dev_attr_speed);
 	if (rc) {
 		kfree(led_cdev->trigger_data);
 		return;
