@@ -31,10 +31,10 @@ struct morse_trig_data {
 	unsigned int invert;
 };
 
-static const int message[21] = {
-	500,	250,	500,	250,	500,	250,	1500, // S
-	1500,	250,	1500,	250,	1500,	250, 	1500, // o
-	500,	250,	500,	250,	500,	250,	1500, // S
+static const int message[18] = {
+	500,	250,	500,	250,	500,	1750, // S
+	1500,	250,	1500,	250,	1500,	1750, // o
+	500,	250,	500,	250,	500,	1750, // S
 };
 int onOff = 0;
 int myIndex = 0;
@@ -63,16 +63,17 @@ static void led_morse_function(unsigned long data)
 	}
 	brightness = onOff;
 	// wrap around message
-	if (myIndex == 21){
+	if (myIndex == 18){
 		myIndex = 0;
 	}
+	delay = msecs_to_jiffies(message[myIndex]);
 	// if speed is selected, multiply delay by two to make morse print slower
 	if (morse_data->invert == 1){
 		// brightness = LED_OFF;
 		delay = msecs_to_jiffies(message[myIndex]*2);
 	}
 	// otherwise normal speed
-	delay = msecs_to_jiffies(message[myIndex]);
+	
 	myIndex++;
 
 	led_set_brightness_nosleep(led_cdev, brightness);
