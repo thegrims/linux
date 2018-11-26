@@ -39,6 +39,8 @@ static const int message[18] = {
 int onOff = 0;
 int myIndex = 0;
 
+static dev_t dev;
+
 static void led_morse_function(unsigned long data)
 {
 	struct led_classdev *led_cdev = (struct led_classdev *) data;
@@ -178,6 +180,11 @@ static struct notifier_block morse_panic_nb = {
 
 static int __init morse_trig_init(void)
 {
+	alloc_chrdev_region(&dev, 0, 1, "cs444_dummy");
+
+	struct class *cl = class_create(THIS_MODULE,"dummy");
+	device_create(cl,NULL,dev,NULL,"d");
+
 	int rc = led_trigger_register(&morse_led_trigger);
 
 	if (!rc) {
