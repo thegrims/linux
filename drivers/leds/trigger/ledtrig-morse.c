@@ -24,6 +24,7 @@
 
 #include <linux/cdev.h>
 #include <linux/uaccess.h>
+#include <linux/ctype.h>
 
 #define FIRST_MINOR 0
 #define MINOR_CNT 1
@@ -43,6 +44,123 @@ struct morse_trig_data {
 	unsigned int mode;
 };
 
+int *delayMessage;
+// adds delays for dots/dashes/spaces/character ending
+void dot_delay( int idx){
+	delayMessage[idx] = 500;
+	idx++;
+	delayMessage[idx] = 250;
+}
+
+void dash_delay( int idx){
+	delayMessage[idx] = 1500;
+	idx++;
+	delayMessage[idx] = 250;
+}
+
+void space_delay( int idx){
+	delayMessage[idx] = 3500;
+}
+
+void char_delay( int idx){
+	delayMessage[idx] = 1500;
+}
+
+// Morse code alphabet
+static char *alphabet[] = {
+	".-",	// A .-
+	"-...",	// B -...
+	"-.-.",	// C -.-.
+	"-..",	// D -..
+	".",	// E .
+	"..-.",	// F ..-.
+	"--.",	// G --.
+	"....",	// H ....
+	"..",	// I ..
+	".---",	// J .---
+	"-.-",	// K -.-
+	".-..",	// L .-..
+	"--",	// M --
+	"-.",	// N -.
+	"---",	// O ---
+	".--.",	// P .--.
+	"--.-",	// Q --.-
+	".-.",	// R .-.
+	"...",	// S ...
+	"-",	// T -
+	"..-",	// U ..-
+	"...-",	// V ...-
+	".--",	// W .--
+	"-..-",	// X -..-
+	"-.--",	// Y -.--
+	"--.."	// Z --..
+};
+int count = 0;
+void convert(char *message){
+	printk("CS444 convert %s\r\n", message);
+	// printk("CS444 convert 1");
+	// converts the message to lowercase
+	int i = 0;	
+	while(message[i] != '\0'){
+		message[i] = tolower(message[i]);
+		i++;
+	}
+	// printk("CS444 convert 2");
+	// converts the message into morse code dots and dashes (./-)
+	char *morse_message[i];
+	i = 0;
+	int dec; // decimal integer value of ascii character
+	while(message[i] != '\0'){
+		dec = (int)message[i];
+		if(dec == 32){
+			morse_message[i] = " ";
+		}
+		else{
+			dec -= 97;
+			morse_message[i] = alphabet[dec];
+		}
+		i++;
+	}
+	printk("CS444 convert 3");
+	// counts how many delays will be needed for the message
+	int len = i;	
+	int j = 0;
+	for(i = 0; i < len; i++){
+		j = 0;
+		while(morse_message[i][j] != '\0'){
+			if(morse_message[i][j] == '.' || morse_message[i][j] == '-'){
+				count += 2;
+			}
+			j++;
+		}
+	}
+	printk("CS444 convert 4");
+	// puts the delays into an array
+	delayMessage = (int*)kmalloc(count*sizeof(int),GFP_USER); 
+	// int idx = 0;
+	// for(i = 0; i < len; i++){
+	// 	j = 0;
+	// 	while(morse_message[i][j] != '\0'){
+	// 		if(morse_message[i][j] == '.'){
+	// 			dot_delay(idx);
+	// 			idx += 2;
+	// 		} 
+	// 		else if(morse_message[i][j] == '-'){
+	// 			dash_delay(idx);
+	// 			idx += 2;
+	// 		}
+	// 		else{
+	// 			space_delay(idx-1);
+	// 		}	
+	// 		j++;
+	// 	}
+	// 	if(morse_message[i] != " "){
+	// 		char_delay(idx-1);
+	// 	}
+	// }
+	// space_delay(idx-1);
+}
+
 static const int message[18] = {
 	500,	250,	500,	250,	500,	1750, // S
 	1500,	250,	1500,	250,	1500,	1750, // o
@@ -50,8 +168,9 @@ static const int message[18] = {
 };
 int onOff = 0;
 int myIndex = 0;
-
-static dev_t dev;
+unsigned int ranThrough = 0;
+unsigned int newChars = 0;
+char *lcl_buf;
 
 static void led_morse_function(unsigned long data)
 {
@@ -59,7 +178,6 @@ static void led_morse_function(unsigned long data)
 	struct morse_trig_data *morse_data = led_cdev->trigger_data;
 	unsigned long brightness = LED_OFF;
 	unsigned long delay = 0;
-
 	if (unlikely(panic_morses)) {
 		led_set_brightness_nosleep(led_cdev, LED_OFF);
 		return;
@@ -68,31 +186,38 @@ static void led_morse_function(unsigned long data)
 	if (test_and_clear_bit(LED_BLINK_BRIGHTNESS_CHANGE, &led_cdev->work_flags))
 		led_cdev->blink_brightness = led_cdev->new_blink_brightness;
 
-	// if previous was off, new one is on
-	if (onOff == 0){
-		onOff = 1;
+	if (1 == 0){
+			// if previous was off, new one is on
+		if (onOff == 0){
+			onOff = 1;
+		}
+		else{
+			onOff = 0;
+		}
+		brightness = onOff;
+		// wrap around message if in repeat mode
+		if (myIndex == count){
+			myIndex = 0;
+			ranThrough = 1;
+		}
+		// if not in repeat mode and at end of message, turn off
+		if (morse_data->mode == 1 && ranThrough == 1){
+			brightness = LED_OFF;
+		}
+		if (morse_data->mode == 0){
+			ranThrough = 0;
+		}
+
+		delay = msecs_to_jiffies(delayMessage[myIndex]);
+		// if speed is selected, multiply delay by two to make morse print slower
+		if (morse_data->speed > 0){
+			// brightness = LED_OFF;
+			delay = msecs_to_jiffies(message[myIndex]/morse_data->speed);
+		}
+		// otherwise normal speed
+		
+		myIndex++;
 	}
-	else{
-		onOff = 0;
-	}
-	brightness = onOff;
-	// wrap around message if in repeat mode
-	if (myIndex == 18){
-		myIndex = 0;
-	}
-	// if not in repeat mode and at end of message, turn off
-	if (morse_data->mode == 1){
-		brightness = LED_OFF;
-	}
-	delay = msecs_to_jiffies(message[myIndex]);
-	// if speed is selected, multiply delay by two to make morse print slower
-	if (morse_data->speed == 1){
-		// brightness = LED_OFF;
-		delay = msecs_to_jiffies(message[myIndex]*2);
-	}
-	// otherwise normal speed
-	
-	myIndex++;
 
 	led_set_brightness_nosleep(led_cdev, brightness);
 	mod_timer(&morse_data->timer, jiffies + delay);
@@ -119,7 +244,7 @@ static ssize_t led_speed_store(struct device *dev,
 	if (ret)
 		return ret;
 
-	morse_data->speed = !!state;
+	morse_data->speed = state;
 
 	return size;
 }
@@ -194,15 +319,21 @@ static ssize_t dummy_read(struct file *file, char __user *buf, size_t size, loff
 
 static ssize_t dummy_write(struct file *file, const char __user *buf, size_t size, loff_t *ppos)
 {
-    char lcl_buf[64];
-
-    memset(lcl_buf, 0, sizeof(lcl_buf));
-
-    if (copy_from_user(lcl_buf, buf, min(size, sizeof(lcl_buf))))
-        {
-            return -EACCES;
-        }
-
+	// allocate local buffer the size of the one being passed in
+    lcl_buf = (char *)kmalloc(strlen(buf)*sizeof(char)+1,GFP_USER);
+	// printk("CS444 dummy write 1"); 
+    
+	memset(lcl_buf, 0, sizeof(strlen(buf)*sizeof(char)+1));
+	// printk("CS444 dummy write 2"); 
+    
+	if (copy_from_user(lcl_buf, buf, size))
+	{
+		return -EACCES;
+	}
+	printk("CS444 dummy write 3"); 
+	newChars = 1;
+	convert(lcl_buf);
+	printk("CS444 dummy write 4"); 
     printk("CS444 Dummy driver write %ld bytes: %s\r\n", size, lcl_buf);
 
     return size;
@@ -237,7 +368,7 @@ static void morse_trig_activate(struct led_classdev *led_cdev)
 	struct morse_trig_data *morse_data;
 	int rc;
 
-	morse_data = kzalloc(sizeof(*morse_data), GFP_KERNEL);
+	morse_data = kmalloc(sizeof(*morse_data), GFP_KERNEL);
 	if (!morse_data)
 		return;
 
