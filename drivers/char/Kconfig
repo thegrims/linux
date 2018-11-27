@@ -9,12 +9,6 @@ source "drivers/char/broadcom/Kconfig"
 
 source "drivers/tty/Kconfig"
 
-config CONFIG_DUMMY
-    tristate "Dummy device"
-    default y
-    ---help---
-    Dummy test file
-
 config DEVMEM
 	bool "/dev/mem virtual device support"
 	default y

@@ -44,7 +44,7 @@ struct morse_trig_data {
 	unsigned int mode;
 };
 
-int *delayMessage;
+int *delayMessage = NULL;
 // adds delays for dots/dashes/spaces/character ending
 void dot_delay( int idx){
 	delayMessage[idx] = 500;
@@ -128,7 +128,7 @@ void convert(char *message){
 	for(i = 0; i < len-1; i++){
 		j = 0;
 		while(morse_message[i][j] != '\0'){
-			printk("%c ", morse_message[i][j]);
+			printk(KERN_CONT "%c ", morse_message[i][j]);
 			if(morse_message[i][j] == '.' || morse_message[i][j] == '-'){
 				count += 2;
 			}
@@ -138,6 +138,12 @@ void convert(char *message){
 	}
 	printk("CS444 convert 4");
 	// puts the delays into an array
+	if (delayMessage != NULL){
+		printk("CS444 freeing delayMessage");
+		kfree(delayMessage);
+		delayMessage = NULL;
+		printk("CS444 delayMessage freed");
+	}
 	delayMessage = (int*)kmalloc(count*sizeof(int),GFP_KERNEL); 
 	int idx = 0;
 	for(i = 0; i < len-1; i++){
@@ -173,10 +179,11 @@ int onOff = 0;
 int myIndex = 0;
 unsigned int ranThrough = 0;
 unsigned int writeReady = 0;
-char *lcl_buf;
+char *lcl_buf = NULL;
 
 static void led_morse_function(unsigned long data)
 {
+	printk("CS444 morse ready? %d",writeReady);
 	struct led_classdev *led_cdev = (struct led_classdev *) data;
 	struct morse_trig_data *morse_data = led_cdev->trigger_data;
 	unsigned long brightness = LED_OFF;
@@ -200,7 +207,7 @@ static void led_morse_function(unsigned long data)
 		}
 		brightness = onOff;
 		// wrap around message if in repeat mode
-		if (myIndex == count){
+		if (myIndex >= count){
 			myIndex = 0;
 			ranThrough = 1;
 		}
@@ -324,6 +331,10 @@ static ssize_t dummy_read(struct file *file, char __user *buf, size_t size, loff
 static ssize_t dummy_write(struct file *file, const char __user *buf, size_t size, loff_t *ppos)
 {
 	// allocate local buffer the size of the one being passed in
+	if (lcl_buf != NULL){
+		kfree(lcl_buf);
+		lcl_buf = NULL;
+	}
     lcl_buf = (char *)kmalloc(strlen(buf)*sizeof(char)+1,GFP_KERNEL);
 	// printk("CS444 dummy write 1"); 
     
@@ -338,6 +349,7 @@ static ssize_t dummy_write(struct file *file, const char __user *buf, size_t siz
 	writeReady = 0;
 	convert(lcl_buf);
 	writeReady = 1;
+	myIndex = 0;
 	printk("CS444 dummy write 4"); 
     printk("CS444 Dummy driver write %ld bytes: %s\r\n", size, lcl_buf);
 
