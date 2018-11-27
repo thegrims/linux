@@ -97,15 +97,15 @@ static char *alphabet[] = {
 };
 int count = 0;
 void convert(char *message){
-	printk("CS444 convert %s\r\n", message);
-	// printk("CS444 convert 1");
+	//printk("CS444 convert %s\r\n", message);
+	// //printk("CS444 convert 1");
 	// converts the message to lowercase
 	int i = 0;	
 	while(message[i] != '\0'){
 		message[i] = tolower(message[i]);
 		i++;
 	}
-	// printk("CS444 convert 2");
+	// //printk("CS444 convert 2");
 	// converts the message into morse code dots and dashes (./-)
 	char *morse_message[i];
 	i = 0;
@@ -121,28 +121,28 @@ void convert(char *message){
 		}
 		i++;
 	}
-	printk("CS444 convert 3");
+	//printk("CS444 convert 3");
 	// counts how many delays will be needed for the message
 	int len = i;	
 	int j = 0;
 	for(i = 0; i < len-1; i++){
 		j = 0;
 		while(morse_message[i][j] != '\0'){
-			printk(KERN_CONT "%c ", morse_message[i][j]);
+			//printk(KERN_CONT "%c ", morse_message[i][j]);
 			if(morse_message[i][j] == '.' || morse_message[i][j] == '-'){
 				count += 2;
 			}
 			j++;
 		}
-		printk("\n");
+		//printk("\n");
 	}
-	printk("CS444 convert 4");
+	//printk("CS444 convert 4");
 	// puts the delays into an array
 	if (delayMessage != NULL){
-		printk("CS444 freeing delayMessage");
+		//printk("CS444 freeing delayMessage");
 		kfree(delayMessage);
 		delayMessage = NULL;
-		printk("CS444 delayMessage freed");
+		//printk("CS444 delayMessage freed");
 	}
 	delayMessage = (int*)kmalloc(count*sizeof(int),GFP_KERNEL); 
 	int idx = 0;
@@ -162,12 +162,12 @@ void convert(char *message){
 			}	
 			j++;
 		}
-		if(morse_message[i] != " "){
+		if(strcmp(morse_message[i]," ") != 0){
 			char_delay(idx-1);
 		}
 	}
 	space_delay(idx-1);
-	printk("CS444 convert 5");
+	//printk("CS444 convert 5");
 }
 
 static const int message[18] = {
@@ -183,7 +183,7 @@ char *lcl_buf = NULL;
 
 static void led_morse_function(unsigned long data)
 {
-	printk("CS444 morse ready? %d",writeReady);
+	// //printk("CS444 morse ready? %d",writeReady);
 	struct led_classdev *led_cdev = (struct led_classdev *) data;
 	struct morse_trig_data *morse_data = led_cdev->trigger_data;
 	unsigned long brightness = LED_OFF;
@@ -197,7 +197,7 @@ static void led_morse_function(unsigned long data)
 		led_cdev->blink_brightness = led_cdev->new_blink_brightness;
 
 	if (writeReady == 1){
-		printk("CS444 morse writing %d",myIndex);
+		//printk("CS444 morse writing %d",myIndex);
 			// if previous was off, new one is on
 		if (onOff == 0){
 			onOff = 1;
@@ -312,18 +312,18 @@ static ssize_t led_invert_store(struct device *dev,
 
 static int my_open(struct inode *i, struct file *f)
 {
-    printk("CS444 Dummy driver open\r\n");
+    //printk("CS444 Dummy driver open\r\n");
     return 0;
 }
 static int my_close(struct inode *i, struct file *f)
 {
-    printk("CS444 Dummy driver close\r\n");
+    //printk("CS444 Dummy driver close\r\n");
     return 0;
 }
 
 static ssize_t dummy_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)
 {
-    printk("CS444 Dummy driver read\r\n");
+    //printk("CS444 Dummy driver read\r\n");
     snprintf(buf, size, "Hey there, I'm a dummy!\r\n");
     return strlen(buf);
 }
@@ -336,22 +336,23 @@ static ssize_t dummy_write(struct file *file, const char __user *buf, size_t siz
 		lcl_buf = NULL;
 	}
     lcl_buf = (char *)kmalloc(strlen(buf)*sizeof(char)+1,GFP_KERNEL);
-	// printk("CS444 dummy write 1"); 
+	// //printk("CS444 dummy write 1"); 
     
 	memset(lcl_buf, 0, sizeof(strlen(buf)*sizeof(char)+1));
-	// printk("CS444 dummy write 2"); 
+	// //printk("CS444 dummy write 2"); 
     
 	if (copy_from_user(lcl_buf, buf, size))
 	{
 		return -EACCES;
 	}
-	printk("CS444 dummy write 3"); 
+	//printk("CS444 dummy write 3"); 
 	writeReady = 0;
 	convert(lcl_buf);
-	writeReady = 1;
 	myIndex = 0;
-	printk("CS444 dummy write 4"); 
-    printk("CS444 Dummy driver write %ld bytes: %s\r\n", size, lcl_buf);
+	writeReady = 1;
+
+	//printk("CS444 dummy write 4"); 
+    // //printk("CS444 Dummy driver write %ld bytes: %s\r\n", size, lcl_buf);
 
     return size;
 }
@@ -379,7 +380,7 @@ static void morse_trig_activate(struct led_classdev *led_cdev)
 
 	cl = class_create(THIS_MODULE,"char");
 	device_create(cl,NULL,dev,NULL,"morse");
-	printk("CS444 Dummy Driver has been loaded!\r\n");
+	//printk("CS444 Dummy Driver has been loaded!\r\n");
 	// create character device end
 
 	struct morse_trig_data *morse_data;
