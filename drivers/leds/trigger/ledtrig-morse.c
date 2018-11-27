@@ -125,40 +125,43 @@ void convert(char *message){
 	// counts how many delays will be needed for the message
 	int len = i;	
 	int j = 0;
-	for(i = 0; i < len; i++){
+	for(i = 0; i < len-1; i++){
 		j = 0;
 		while(morse_message[i][j] != '\0'){
+			printk("%c ", morse_message[i][j]);
 			if(morse_message[i][j] == '.' || morse_message[i][j] == '-'){
 				count += 2;
 			}
 			j++;
 		}
+		printk("\n");
 	}
 	printk("CS444 convert 4");
 	// puts the delays into an array
 	delayMessage = (int*)kmalloc(count*sizeof(int),GFP_USER); 
-	// int idx = 0;
-	// for(i = 0; i < len; i++){
-	// 	j = 0;
-	// 	while(morse_message[i][j] != '\0'){
-	// 		if(morse_message[i][j] == '.'){
-	// 			dot_delay(idx);
-	// 			idx += 2;
-	// 		} 
-	// 		else if(morse_message[i][j] == '-'){
-	// 			dash_delay(idx);
-	// 			idx += 2;
-	// 		}
-	// 		else{
-	// 			space_delay(idx-1);
-	// 		}	
-	// 		j++;
-	// 	}
-	// 	if(morse_message[i] != " "){
-	// 		char_delay(idx-1);
-	// 	}
-	// }
-	// space_delay(idx-1);
+	int idx = 0;
+	for(i = 0; i < len-1; i++){
+		j = 0;
+		while(morse_message[i][j] != '\0'){
+			if(morse_message[i][j] == '.'){
+				dot_delay(idx);
+				idx += 2;
+			} 
+			else if(morse_message[i][j] == '-'){
+				dash_delay(idx);
+				idx += 2;
+			}
+			else{
+				space_delay(idx-1);
+			}	
+			j++;
+		}
+		if(morse_message[i] != " "){
+			char_delay(idx-1);
+		}
+	}
+	space_delay(idx-1);
+	printk("CS444 convert 5");
 }
 
 static const int message[18] = {
@@ -169,7 +172,7 @@ static const int message[18] = {
 int onOff = 0;
 int myIndex = 0;
 unsigned int ranThrough = 0;
-unsigned int newChars = 0;
+unsigned int writeReady = 0;
 char *lcl_buf;
 
 static void led_morse_function(unsigned long data)
@@ -186,7 +189,8 @@ static void led_morse_function(unsigned long data)
 	if (test_and_clear_bit(LED_BLINK_BRIGHTNESS_CHANGE, &led_cdev->work_flags))
 		led_cdev->blink_brightness = led_cdev->new_blink_brightness;
 
-	if (1 == 0){
+	if (writeReady > 0){
+		printk("CS444 morse writing %d",myIndex);
 			// if previous was off, new one is on
 		if (onOff == 0){
 			onOff = 1;
@@ -331,8 +335,9 @@ static ssize_t dummy_write(struct file *file, const char __user *buf, size_t siz
 		return -EACCES;
 	}
 	printk("CS444 dummy write 3"); 
-	newChars = 1;
+	writeReady = 0;
 	convert(lcl_buf);
+	writeReady = 1;
 	printk("CS444 dummy write 4"); 
     printk("CS444 Dummy driver write %ld bytes: %s\r\n", size, lcl_buf);
 
