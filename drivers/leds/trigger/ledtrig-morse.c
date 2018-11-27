@@ -138,7 +138,7 @@ void convert(char *message){
 	}
 	printk("CS444 convert 4");
 	// puts the delays into an array
-	delayMessage = (int*)kmalloc(count*sizeof(int),GFP_USER); 
+	delayMessage = (int*)kmalloc(count*sizeof(int),GFP_KERNEL); 
 	int idx = 0;
 	for(i = 0; i < len-1; i++){
 		j = 0;
@@ -189,7 +189,7 @@ static void led_morse_function(unsigned long data)
 	if (test_and_clear_bit(LED_BLINK_BRIGHTNESS_CHANGE, &led_cdev->work_flags))
 		led_cdev->blink_brightness = led_cdev->new_blink_brightness;
 
-	if (writeReady > 0){
+	if (writeReady == 1){
 		printk("CS444 morse writing %d",myIndex);
 			// if previous was off, new one is on
 		if (onOff == 0){
@@ -216,7 +216,7 @@ static void led_morse_function(unsigned long data)
 		// if speed is selected, multiply delay by two to make morse print slower
 		if (morse_data->speed > 0){
 			// brightness = LED_OFF;
-			delay = msecs_to_jiffies(message[myIndex]/morse_data->speed);
+			delay = msecs_to_jiffies(delayMessage[myIndex]/morse_data->speed);
 		}
 		// otherwise normal speed
 		
@@ -324,7 +324,7 @@ static ssize_t dummy_read(struct file *file, char __user *buf, size_t size, loff
 static ssize_t dummy_write(struct file *file, const char __user *buf, size_t size, loff_t *ppos)
 {
 	// allocate local buffer the size of the one being passed in
-    lcl_buf = (char *)kmalloc(strlen(buf)*sizeof(char)+1,GFP_USER);
+    lcl_buf = (char *)kmalloc(strlen(buf)*sizeof(char)+1,GFP_KERNEL);
 	// printk("CS444 dummy write 1"); 
     
 	memset(lcl_buf, 0, sizeof(strlen(buf)*sizeof(char)+1));
